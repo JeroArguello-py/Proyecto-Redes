@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDN Firewall — Panel de Control</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --blue:      #388bfd;
+      --green:     #3fb950;
+      --red:       #f85149;
+      --yellow:    #d29922;
+      --orange:    #e08b3a;
+      --purple:    #bc8cff;
+      --cyan:      #39c5cf;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; }
+    .logo-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 8px;
+                 display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .server-cfg { display: flex; align-items: center; gap: 8px; }
+    .server-cfg input {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 5px 10px; border-radius: 6px; font-size: 13px; width: 220px;
+    }
+    .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .2s; }
+    .btn:hover { opacity: .8; }
+    .btn-blue   { background: var(--blue);   color: #fff; }
+    .btn-green  { background: var(--green);  color: #000; }
+    .btn-red    { background: var(--red);    color: #fff; }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-sm     { padding: 3px 9px; font-size: 12px; }
+    #conn-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 4px; transition: background .3s; }
+    #conn-dot.on { background: var(--green); }
+
+    /* ── Layout ── */
+    .main { display: grid; grid-template-columns: 270px 1fr; gap: 0; height: calc(100vh - 57px); }
+
+    /* ── Sidebar ── */
+    aside {
+      background: var(--surface); border-right: 1px solid var(--border);
+      padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+    }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: .8px; color: var(--muted); margin-bottom: 10px; }
+
+    /* Nodos */
+    .node-card {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 8px; transition: border-color .3s;
+    }
+    .node-card.online  { border-left: 3px solid var(--green); }
+    .node-card.offline { border-left: 3px solid var(--red); opacity: .7; }
+    .node-header { display: flex; align-items: center; justify-content: space-between; }
+    .node-name { font-weight: 600; font-size: 13px; }
+    .badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-green  { background: rgba(63,185,80,.2);  color: var(--green); }
+    .badge-red    { background: rgba(248,81,73,.2);  color: var(--red); }
+    .badge-yellow { background: rgba(210,153,34,.2); color: var(--yellow); }
+    .badge-blue   { background: rgba(56,139,253,.2); color: var(--blue); }
+    .badge-orange { background: rgba(224,139,58,.2); color: var(--orange); }
+    .node-ip  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .node-lastseen { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; text-align: center;
+    }
+    .stat-val { font-size: 22px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Content ── */
+    .content { overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .tab {
+      padding: 8px 16px; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 13px;
+      color: var(--muted); background: none; border: none; transition: all .2s;
+    }
+    .tab.active { color: var(--text); background: var(--surface); border: 1px solid var(--border); border-bottom: 1px solid var(--surface); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .card-header {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .card-title { font-weight: 700; font-size: 15px; }
+
+    /* ── Tabla de flujo ── */
+    .flow-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .flow-table th {
+      background: var(--bg); padding: 8px 10px; text-align: left;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    .flow-table td {
+      padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    .flow-table tr:last-child td { border-bottom: none; }
+    .flow-table tr:hover td { background: rgba(255,255,255,.03); }
+    .rule-name { font-weight: 600; }
+    .match-pill {
+      display: inline-block; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: monospace; margin: 1px;
+    }
+    .match-pill.any { color: var(--muted); }
+    .counter { font-family: monospace; font-size: 12px; }
+    .counter.active { color: var(--cyan); font-weight: 700; }
+
+    /* Conflicto */
+    .conflict-row td { background: rgba(224,139,58,.07) !important; }
+    .conflict-row td:first-child { border-left: 3px solid var(--orange); }
+    .conflict-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(224,139,58,.2); color: var(--orange);
+      border: 1px solid rgba(224,139,58,.4); border-radius: 4px;
+      padding: 1px 6px; font-size: 11px; font-weight: 700; margin-left: 4px;
+    }
+
+    /* Banner de conflictos */
+    .conflict-banner {
+      display: none; background: rgba(224,139,58,.12); border: 1px solid rgba(224,139,58,.4);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;
+      color: var(--orange); font-size: 13px; align-items: center; gap: 8px;
+    }
+    .conflict-banner.show { display: flex; }
+
+    /* ── Acciones ── */
+    .action-forward { color: var(--green); font-weight: 700; }
+    .action-drop    { color: var(--red);   font-weight: 700; }
+    .action-report  { color: var(--yellow);font-weight: 700; }
+
+    /* ── Prioridad ── */
+    .prio-alta  { background: rgba(248,81,73,.15);  color: var(--red);    border: 1px solid rgba(248,81,73,.3); }
+    .prio-media { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+    .prio-baja  { background: rgba(56,139,253,.15); color: var(--blue);   border: 1px solid rgba(56,139,253,.3); }
+
+    /* ── Eventos ── */
+    .event-row td { font-size: 12px; }
+    .ev-block  td { border-left: 3px solid var(--red) !important; }
+    .ev-report td { border-left: 3px solid var(--yellow) !important; }
+    .ev-forward td { border-left: 3px solid var(--green) !important; }
+
+    /* Filtros de eventos */
+    .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600;
+      transition: all .2s;
+    }
+    .filter-btn.active { background: var(--surface); color: var(--text); border-color: var(--blue); }
+    .filter-btn.f-block.active  { color: var(--red);    border-color: var(--red); }
+    .filter-btn.f-report.active { color: var(--yellow); border-color: var(--yellow); }
+    .filter-btn.f-fwd.active    { color: var(--green);  border-color: var(--green); }
+
+    /* ── Formulario modal ── */
+    .overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      width: 700px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .form-group input, .form-group select {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 8px 10px; border-radius: 6px; font-size: 13px;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--blue); }
+    .form-section-title {
+      font-size: 12px; font-weight: 700; color: var(--cyan); text-transform: uppercase;
+      letter-spacing: .8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+    .help { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 10px 18px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .3s; z-index: 999;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok  { background: var(--green); color: #000; }
+    #toast.err { background: var(--red);   color: #fff; }
+
+    /* ── Vacío ── */
+    .empty { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+
+    /* Confirm dialog */
+    .confirm-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px; max-width: 380px; text-align: center;
+    }
+    .confirm-box h3 { margin-bottom: 10px; font-size: 16px; }
+    .confirm-box p  { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    SDN Firewall — Panel de Control
+  </div>
+  <div class="server-cfg">
+    <span><span id="conn-dot"></span><span id="conn-label">Desconectado</span></span>
+    <input id="server-url" type="text" value="http://10.23.36.87:5000" placeholder="http://IP:5000">
+    <button class="btn btn-blue" onclick="connect()">Conectar</button>
+    <span style="color:var(--muted);font-size:12px" id="refresh-label"></span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Sidebar -->
+  <aside>
+    <!-- Nodos -->
+    <div>
+      <div class="section-title">Nodos conectados</div>
+      <div id="nodes-list"><div class="empty">Sin datos</div></div>
+    </div>
+
+    <!-- Estadísticas globales -->
+    <div>
+      <div class="section-title">Estadísticas del servidor</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="st-rules" style="color:var(--blue)">—</div>
+          <div class="stat-lbl">Reglas</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="st-nodes" style="color:var(--green)">—</div>
+          <div class="stat-lbl">Nodos activos</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="st-blocks" style="color:var(--red)">—</div>
+          <div class="stat-lbl">Bloqueados</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="st-reports" style="color:var(--yellow)">—</div>
+          <div class="stat-lbl">Reportados</div>
+        </div>
+        <div class="stat-box" style="grid-column:1/-1">
+          <div class="stat-val" id="st-events" style="color:var(--purple);font-size:16px">—</div>
+          <div class="stat-lbl">Total eventos · <span id="st-uptime" style="color:var(--green)">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-refresh -->
+    <div>
+      <div class="section-title">Actualización automática</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="auto-refresh" checked onchange="toggleAutoRefresh()">
+        <label for="auto-refresh" style="font-size:13px">Cada 5 segundos</label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Tabs -->
+    <div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('rules')">📋 Tabla de Flujo</button>
+        <button class="tab" onclick="switchTab('events')">🚨 Eventos / Reportes</button>
+        <button class="tab" onclick="switchTab('guide')">📖 Referencia de Campos</button>
+      </div>
+
+      <!-- TAB: Tabla de flujo -->
+      <div id="tab-rules" class="tab-panel active">
+
+        <!-- Banner de conflictos -->
+        <div class="conflict-banner" id="conflict-banner">
+          <span style="font-size:18px">⚠️</span>
+          <span id="conflict-banner-text">Se detectaron reglas en conflicto. Las filas naranjas tienen el mismo match con acciones distintas. La regla de mayor prioridad gana.</span>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Tabla de Flujo SDN</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-sm" style="background:var(--border);color:var(--red)" onclick="confirmClearAll()">🗑 Limpiar todo</button>
+              <button class="btn btn-green" onclick="openModal()">+ Nueva Regla</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="flow-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Prioridad</th>
+                  <th>Nombre</th>
+                  <th>IP Origen</th>
+                  <th>IP Destino</th>
+                  <th>Proto</th>
+                  <th>Pto Src</th>
+                  <th>Pto Dst</th>
+                  <th>Acción</th>
+                  <th title="Paquetes impactados por esta regla">Pkts ▼</th>
+                  <th title="Bytes impactados">Bytes</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="rules-tbody">
+                <tr><td colspan="12" class="empty">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Eventos -->
+      <div id="tab-events" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Historial de Eventos</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div class="filter-bar">
+                <button class="filter-btn active" onclick="setEventFilter('all',this)">Todos</button>
+                <button class="filter-btn f-block"  onclick="setEventFilter('block',this)">🔴 BLOCK</button>
+                <button class="filter-btn f-report" onclick="setEventFilter('report',this)">🟡 REPORT</button>
+                <button class="filter-btn f-fwd"    onclick="setEventFilter('forward',this)">🟢 FWD</button>
+              </div>
+              <button class="btn btn-sm" style="background:var(--border);color:var(--text)" onclick="loadEvents()">↻</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;max-height:60vh;overflow-y:auto" id="events-scroll">
+            <table class="flow-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Nodo</th>
+                  <th>Regla aplicada</th>
+                  <th>IP Origen</th>
+                  <th>IP Destino</th>
+                  <th>Proto</th>
+                  <th>Pto Dst</th>
+                  <th>Tamaño</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="events-tbody">
+                <tr><td colspan="9" class="empty">Sin eventos</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:8px 14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)" id="events-footer">
+            —
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Guía de campos -->
+      <div id="tab-guide" class="tab-panel">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Referencia de la Tabla de Flujo</span></div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+
+            <div>
+              <div class="form-section-title" style="margin-bottom:10px">Campos de Coincidencia (Match Fields)</div>
+              <table class="flow-table">
+                <thead><tr><th>Campo</th><th>Descripción</th><th>Ejemplo</th><th>Wildcard</th></tr></thead>
+                <tbody>
+                  <tr><td><code>ip_src</code></td><td>Dirección IP de origen del paquete</td><td><code>10.23.36.87</code> · <code>10.23.*</code> · <code>10.0.0.0/8</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>ip_dst</code></td><td>Dirección IP de destino</td><td><code>10.23.41.58</code> · <code>192.168.0.0/24</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>protocol</code></td><td>Protocolo de transporte</td><td><code>UDP</code> · <code>TCP</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>port_src</code></td><td>Puerto origen</td><td><code>5000</code> · <code>1024-65535</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>port_dst</code></td><td>Puerto destino</td><td><code>9000</code> · <code>80</code> · <code>8000-9000</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>ingress</code></td><td>Interfaz de entrada del nodo</td><td><code>eth0</code> · <code>wlan0</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>mac_src</code></td><td>Dirección MAC origen (Ethernet)</td><td><code>AA:BB:CC:DD:EE:01</code></td><td><code>*</code></td></tr>
+                  <tr><td><code>mac_dst</code></td><td>Dirección MAC destino</td><td><code>AA:BB:CC:DD:EE:02</code></td><td><code>*</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="form-section-title" style="margin-bottom:10px">Acciones (Instructions)</div>
+              <table class="flow-table">
+                <thead><tr><th>Acción</th><th>Efecto en el paquete</th><th>Evento generado</th><th>Contador</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="action-forward">forward</span></td><td>El paquete se permite y reenvía normalmente</td><td>No</td><td>packets_forwarded</td></tr>
+                  <tr><td><span class="action-drop">drop</span></td><td>El paquete se descarta silenciosamente</td><td>Sí — tipo <code>block</code></td><td>packets_dropped</td></tr>
+                  <tr><td><span class="action-report">report</span></td><td>El paquete pasa pero se alerta al controlador</td><td>Sí — tipo <code>report</code></td><td>packets_reported</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="form-section-title" style="margin-bottom:10px">Prioridades y resolución de conflictos</div>
+              <table class="flow-table">
+                <thead><tr><th>Nivel</th><th>Valor numérico</th><th>Comportamiento ante conflicto</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="badge prio-alta">Alta</span></td><td>1 (mayor precedencia)</td><td>Siempre gana sobre Media y Baja</td></tr>
+                  <tr><td><span class="badge prio-media">Media</span></td><td>2</td><td>Gana sobre Baja; pierde ante Alta</td></tr>
+                  <tr><td><span class="badge prio-baja">Baja</span></td><td>3 (menor precedencia)</td><td>Solo aplica si no hay reglas Alta/Media que coincidan</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="form-section-title" style="margin-bottom:10px">Semántica de evaluación (First-Match)</div>
+              <p style="color:var(--muted);line-height:1.7;font-size:13px">
+                El motor usa <strong style="color:var(--text)">first-match</strong>: las reglas se ordenan por prioridad (Alta→Media→Baja)
+                y se evalúan en ese orden. La primera que coincide con <em>todos</em> los campos del paquete determina la acción.
+                Si ninguna coincide, la acción por defecto es <span class="action-forward">forward</span>.
+                El campo <code>*</code> actúa como wildcard y coincide con cualquier valor.
+                Las filas <span style="color:var(--orange);font-weight:700">naranjas</span> en la tabla indican conflictos detectados
+                (mismos campos de match con acciones distintas).
+              </p>
+            </div>
+
+            <div>
+              <div class="form-section-title" style="margin-bottom:10px">Ejemplos de reglas por escenario</div>
+              <table class="flow-table">
+                <thead><tr><th>Escenario</th><th>ip_src</th><th>ip_dst</th><th>Proto</th><th>port_dst</th><th>Acción</th><th>Prioridad</th></tr></thead>
+                <tbody>
+                  <tr><td>Permitir todo UDP al nodo C</td><td>*</td><td>10.23.61.50</td><td>UDP</td><td>9000</td><td class="action-forward">forward</td><td><span class="badge prio-media">Media</span></td></tr>
+                  <tr><td>Bloquear UDP puerto 9000</td><td>*</td><td>*</td><td>UDP</td><td>9000</td><td class="action-drop">drop</td><td><span class="badge prio-alta">Alta</span></td></tr>
+                  <tr><td>Bloquear IP servidor</td><td>10.23.36.87</td><td>*</td><td>UDP</td><td>*</td><td class="action-drop">drop</td><td><span class="badge prio-alta">Alta</span></td></tr>
+                  <tr><td>Reportar IP sospechosa</td><td>10.23.36.87</td><td>*</td><td>*</td><td>*</td><td class="action-report">report</td><td><span class="badge prio-alta">Alta</span></td></tr>
+                  <tr><td>Conflicto: DROP gana</td><td>*</td><td>*</td><td>UDP</td><td>9000</td><td class="action-drop">drop</td><td><span class="badge prio-alta">Alta</span></td></tr>
+                  <tr><td>Conflicto: FWD pierde</td><td>*</td><td>*</td><td>UDP</td><td>9000</td><td class="action-forward">forward</td><td><span class="badge prio-baja">Baja</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Nueva / Editar regla -->
+<div class="overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">➕ Nueva Regla de Flujo</span>
+      <button class="btn btn-sm" style="background:var(--border);color:var(--text)" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-section-title">Identificación</div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Nombre de la regla *</label>
+          <input id="f-name" type="text" placeholder="Ej: Bloquear UDP nodo C">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prioridad *</label>
+          <select id="f-priority">
+            <option value="Alta">Alta (1) — mayor precedencia</option>
+            <option value="Media" selected>Media (2)</option>
+            <option value="Baja">Baja (3) — menor precedencia</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Acción *</label>
+          <select id="f-action">
+            <option value="forward">forward — Permitir</option>
+            <option value="drop">drop — Bloquear</option>
+            <option value="report">report — Reportar al controlador</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Coincidencia — Capa de Red (L3)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>IP Origen (ip_src)</label>
+          <input id="f-ip-src" type="text" placeholder="* · 10.23.36.87 · 10.23.* · 10.0.0.0/8" value="*">
+          <span class="help">Wildcard (*), prefijo (10.23.*) o CIDR (10.0.0.0/8)</span>
+        </div>
+        <div class="form-group">
+          <label>IP Destino (ip_dst)</label>
+          <input id="f-ip-dst" type="text" placeholder="* · 10.23.41.58 · 192.168.0.0/24" value="*">
+        </div>
+      </div>
+
+      <div class="form-section-title">Coincidencia — Capa de Transporte (L4)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Protocolo</label>
+          <select id="f-protocol">
+            <option value="*">* — Cualquiera (UDP y TCP)</option>
+            <option value="UDP">UDP</option>
+            <option value="TCP">TCP</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Puerto Origen (port_src)</label>
+          <input id="f-port-src" type="text" placeholder="* · 5000 · 1024-65535" value="*">
+          <span class="help">Número exacto o rango (ej: 1024-65535)</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Puerto Destino (port_dst)</label>
+          <input id="f-port-dst" type="text" placeholder="* · 9000 · 8000-9000" value="*">
+          <span class="help">Número exacto o rango (ej: 8000-9000)</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--border);color:var(--text)" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-green" id="modal-submit-btn" onclick="submitRule()">✓ Crear Regla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm: Limpiar todas las reglas -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3>⚠️ Limpiar todas las reglas</h3>
+    <p>Esta acción eliminará <strong>todas</strong> las reglas de la tabla de flujo. Los nodos pasarán a modo <span class="action-forward">forward</span> por defecto (permitir todo). ¿Confirmar?</p>
+    <div class="confirm-actions">
+      <button class="btn" style="background:var(--border);color:var(--text)" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-red" onclick="clearAllRules()">Sí, limpiar todo</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let SERVER = 'http://10.23.36.87:5000';
+  let refreshTimer = null;
+  let connected = false;
+  let editingRuleId = null;   // null = crear, string = editar
+  let eventFilter = 'all';
+  let allEvents   = [];
+
+  // ── Conexión ──────────────────────────────────────────────────────────────
+
+  async function connect() {
+    SERVER = document.getElementById('server-url').value.trim().replace(/\/$/, '');
+    await refresh();
+    if (connected) toast('Conectado a ' + SERVER, 'ok');
+  }
+
+  async function apiFetch(path, opts = {}) {
+    try {
+      const r = await fetch(SERVER + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+      });
+      return { ok: r.ok, status: r.status, data: await r.json() };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // ── Refresh principal ─────────────────────────────────────────────────────
+
+  async function refresh() {
+    await Promise.all([loadStatus(), loadNodes(), loadRules(), loadEvents()]);
+    document.getElementById('refresh-label').textContent =
+      'Actualizado ' + new Date().toLocaleTimeString();
+  }
+
+  async function loadStatus() {
+    const res = await apiFetch('/status');
+    const dot = document.getElementById('conn-dot');
+    const lbl = document.getElementById('conn-label');
+    if (res.ok) {
+      connected = true;
+      dot.className = 'on';
+      lbl.textContent = 'Conectado';
+      const d = res.data;
+      document.getElementById('st-rules').textContent   = d.rules_total  ?? d.rules_count  ?? '—';
+      document.getElementById('st-nodes').textContent   = d.nodes_active ?? d.nodes_online ?? d.nodes_total ?? '—';
+      document.getElementById('st-events').textContent  = d.events_total ?? d.events_count ?? '—';
+      document.getElementById('st-blocks').textContent  = d.events_blocks  ?? '—';
+      document.getElementById('st-reports').textContent = d.events_reports ?? '—';
+      document.getElementById('st-uptime').textContent  = '✓ Online';
+    } else {
+      connected = false;
+      dot.className = '';
+      lbl.textContent = 'Desconectado';
+      document.getElementById('st-uptime').textContent = '✗ Offline';
+    }
+  }
+
+  async function loadNodes() {
+    const res = await apiFetch('/nodes');
+    const el = document.getElementById('nodes-list');
+    if (!res.ok) { el.innerHTML = '<div class="empty">Sin conexión</div>'; return; }
+
+    let nodes = res.data.nodes ?? res.data;
+    if (typeof nodes === 'object' && !Array.isArray(nodes)) nodes = Object.values(nodes);
+    if (!nodes.length) { el.innerHTML = '<div class="empty">Sin nodos registrados</div>'; return; }
+
+    const now = Date.now();
+    el.innerHTML = nodes.map(n => {
+      const online = ['online','activo','active'].includes((n.status||'').toLowerCase());
+      const lastSeen = n.last_seen ? relativeTime(n.last_seen) : '?';
+      return `<div class="node-card ${online ? 'online' : 'offline'}">
+        <div class="node-header">
+          <span class="node-name">${n.name}</span>
+          <span class="badge ${online ? 'badge-green' : 'badge-red'}">${online ? 'activo' : 'inactivo'}</span>
+        </div>
+        <div class="node-ip">🖥 ${n.ip}:${n.port ?? 9000}</div>
+        <div class="node-lastseen">🕐 Último HB: ${lastSeen}</div>
+        <div class="node-lastseen" style="color:var(--muted);opacity:.6">id: ${(n.id ?? '').slice(0,8)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function relativeTime(isoStr) {
+    try {
+      const d = new Date(isoStr);
+      const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (diff < 5)  return 'ahora mismo';
+      if (diff < 60) return `hace ${diff}s`;
+      if (diff < 3600) return `hace ${Math.floor(diff/60)}m`;
+      return `hace ${Math.floor(diff/3600)}h`;
+    } catch { return '?'; }
+  }
+
+  // ── Detección de conflictos ───────────────────────────────────────────────
+  // Dos reglas conflictan si sus campos match se superponen en los campos
+  // clave (ip_src, ip_dst, protocol, port_src, port_dst) y tienen acciones distintas.
+  // Simplificación: si ambos campos son iguales O alguno es "*", se considera overlap.
+
+  function fieldsOverlap(v1, v2) {
+    if (v1 === '*' || v2 === '*') return true;
+    return v1 === v2;
+  }
+
+  function rulesConflict(a, b) {
+    if (a.action === b.action) return false;
+    const m1 = a.match ?? {};
+    const m2 = b.match ?? {};
+    const keys = ['ip_src','ip_dst','protocol','port_src','port_dst'];
+    return keys.every(k => fieldsOverlap(m1[k] ?? '*', m2[k] ?? '*'));
+  }
+
+  function detectConflicts(rules) {
+    const conflictIds = new Set();
+    for (let i = 0; i < rules.length; i++) {
+      for (let j = i + 1; j < rules.length; j++) {
+        if (rulesConflict(rules[i], rules[j])) {
+          conflictIds.add(rules[i].id);
+          conflictIds.add(rules[j].id);
+        }
+      }
+    }
+    return conflictIds;
+  }
+
+  // ── Tabla de flujo ────────────────────────────────────────────────────────
+
+  async function loadRules() {
+    const res = await apiFetch('/rules');
+    const tb = document.getElementById('rules-tbody');
+    const banner = document.getElementById('conflict-banner');
+    if (!res.ok) { tb.innerHTML = '<tr><td colspan="12" class="empty">Sin conexión</td></tr>'; return; }
+
+    const rules = res.data.rules ?? res.data;
+    if (!rules.length) {
+      tb.innerHTML = '<tr><td colspan="12" class="empty">No hay reglas cargadas — haz clic en "+ Nueva Regla" para comenzar</td></tr>';
+      banner.classList.remove('show');
+      return;
+    }
+
+    const conflictIds = detectConflicts(rules);
+    if (conflictIds.size > 0) {
+      document.getElementById('conflict-banner-text').textContent =
+        `⚠️ Se detectaron ${conflictIds.size} regla(s) en conflicto (filas naranjas). La de mayor prioridad gana (Alta > Media > Baja).`;
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+
+    tb.innerHTML = rules.map((r, idx) => {
+      const m = r.match ?? {};
+      const prioClass = { Alta: 'prio-alta', Media: 'prio-media', Baja: 'prio-baja' }[r.priority] ?? '';
+      const actionClass = { forward: 'action-forward', drop: 'action-drop', report: 'action-report' }[r.action] ?? '';
+      const isConflict = conflictIds.has(r.id);
+      const rowClass = isConflict ? 'conflict-row' : '';
+      const conflictMark = isConflict ? '<span class="conflict-badge">⚡ conflicto</span>' : '';
+
+      function pill(val) {
+        const any = !val || val === '*';
+        return `<span class="match-pill ${any ? 'any' : ''}">${val || '*'}</span>`;
+      }
+
+      const pkts = r.packets ?? 0;
+      const byts = r.bytes   ?? 0;
+      const pktClass = pkts > 0 ? 'counter active' : 'counter';
+
+      return `<tr class="${rowClass}">
+        <td style="color:var(--muted);font-size:11px">${idx + 1}</td>
+        <td><span class="badge ${prioClass}">${r.priority}</span>${conflictMark}</td>
+        <td class="rule-name">${r.name}</td>
+        <td>${pill(m.ip_src)}</td>
+        <td>${pill(m.ip_dst)}</td>
+        <td>${pill(m.protocol)}</td>
+        <td>${pill(m.port_src)}</td>
+        <td>${pill(m.port_dst)}</td>
+        <td class="${actionClass}">${r.action.toUpperCase()}</td>
+        <td class="${pktClass}" title="${pkts} paquetes procesados">${pkts > 0 ? '▶ ' : ''}${pkts}</td>
+        <td class="counter" style="color:var(--muted)">${formatBytes(byts)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" style="background:rgba(56,139,253,.15);color:var(--blue);margin-right:4px"
+            onclick='openEditModal(${JSON.stringify(r)})' title="Editar regla">✏️</button>
+          <button class="btn btn-red btn-sm" onclick="deleteRule('${r.id}','${r.name}')" title="Eliminar">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function formatBytes(b) {
+    if (b === 0) return '0';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  // ── Eliminar regla ────────────────────────────────────────────────────────
+
+  async function deleteRule(id, name) {
+    if (!confirm(`¿Eliminar la regla "${name}"?`)) return;
+    const res = await apiFetch('/rules/' + id, { method: 'DELETE' });
+    if (res.ok) { toast('Regla eliminada', 'ok'); await loadRules(); }
+    else toast('Error al eliminar: ' + (res.data?.error ?? res.error), 'err');
+  }
+
+  // ── Limpiar todas las reglas ──────────────────────────────────────────────
+
+  function confirmClearAll() {
+    document.getElementById('confirm-overlay').classList.add('open');
+  }
+  function closeConfirm() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+  }
+
+  async function clearAllRules() {
+    closeConfirm();
+    const res = await apiFetch('/rules');
+    if (!res.ok) { toast('Error al obtener reglas', 'err'); return; }
+    const rules = res.data.rules ?? res.data;
+    let deleted = 0;
+    for (const r of rules) {
+      const d = await apiFetch('/rules/' + r.id, { method: 'DELETE' });
+      if (d.ok) deleted++;
+    }
+    toast(`${deleted} regla(s) eliminadas`, 'ok');
+    await loadRules();
+  }
+
+  // ── Modal Crear / Editar ───────────────────────────────────────────────────
+
+  function openModal() {
+    editingRuleId = null;
+    document.getElementById('modal-title').textContent = '➕ Nueva Regla de Flujo';
+    document.getElementById('modal-submit-btn').textContent = '✓ Crear Regla';
+    resetForm();
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function openEditModal(rule) {
+    editingRuleId = rule.id;
+    document.getElementById('modal-title').textContent = '✏️ Editar Regla — ' + rule.name;
+    document.getElementById('modal-submit-btn').textContent = '✓ Guardar Cambios';
+
+    document.getElementById('f-name').value     = rule.name;
+    document.getElementById('f-priority').value = rule.priority;
+    document.getElementById('f-action').value   = rule.action;
+
+    const m = rule.match ?? {};
+    document.getElementById('f-ip-src').value   = m.ip_src   || '*';
+    document.getElementById('f-ip-dst').value   = m.ip_dst   || '*';
+    document.getElementById('f-protocol').value = m.protocol || '*';
+    document.getElementById('f-port-src').value = m.port_src || '*';
+    document.getElementById('f-port-dst').value = m.port_dst || '*';
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    editingRuleId = null;
+  }
+  function closeModalOutside(e) { if (e.target.id === 'modal-overlay') closeModal(); }
+
+  async function submitRule() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { toast('El nombre es obligatorio', 'err'); return; }
+
+    const ruleData = {
+      name,
+      priority: document.getElementById('f-priority').value,
+      action:   document.getElementById('f-action').value,
+      match: {
+        ip_src:   document.getElementById('f-ip-src').value.trim()   || '*',
+        ip_dst:   document.getElementById('f-ip-dst').value.trim()   || '*',
+        protocol: document.getElementById('f-protocol').value,
+        port_src: document.getElementById('f-port-src').value.trim() || '*',
+        port_dst: document.getElementById('f-port-dst').value.trim() || '*',
+        ingress:  '*',
+        mac_src:  '*',
+        mac_dst:  '*',
+      }
+    };
+
+    // Si editando: eliminar la regla vieja primero, luego crear nueva
+    if (editingRuleId) {
+      const del = await apiFetch('/rules/' + editingRuleId, { method: 'DELETE' });
+      if (!del.ok) { toast('Error al actualizar: no se pudo eliminar la regla anterior', 'err'); return; }
+    }
+
+    const res = await apiFetch('/rules', { method: 'POST', body: JSON.stringify(ruleData) });
+    if (res.ok) {
+      toast(editingRuleId ? 'Regla actualizada' : 'Regla creada correctamente', 'ok');
+      closeModal();
+      resetForm();
+      await loadRules();
+    } else {
+      toast('Error: ' + (res.data?.error ?? res.error ?? 'desconocido'), 'err');
+    }
+  }
+
+  function resetForm() {
+    document.getElementById('f-name').value     = '';
+    document.getElementById('f-priority').value = 'Media';
+    document.getElementById('f-action').value   = 'forward';
+    document.getElementById('f-protocol').value = '*';
+    ['f-ip-src','f-ip-dst','f-port-src','f-port-dst'].forEach(id => {
+      document.getElementById(id).value = '*';
+    });
+  }
+
+  // ── Eventos con filtro ────────────────────────────────────────────────────
+
+  async function loadEvents() {
+    const res = await apiFetch('/events?limit=200');
+    const tb  = document.getElementById('events-tbody');
+    const footer = document.getElementById('events-footer');
+    if (!res.ok) { tb.innerHTML = '<tr><td colspan="9" class="empty">Sin conexión</td></tr>'; return; }
+
+    let events = res.data.events ?? res.data;
+    if (typeof events === 'object' && !Array.isArray(events)) events = Object.values(events);
+    allEvents = [...events].reverse();   // más recientes primero
+
+    renderEvents();
+  }
+
+  function renderEvents() {
+    const tb = document.getElementById('events-tbody');
+    const footer = document.getElementById('events-footer');
+
+    let filtered = eventFilter === 'all'
+      ? allEvents
+      : allEvents.filter(e => (e.type ?? e.tipo) === eventFilter);
+
+    footer.textContent = `Mostrando ${filtered.length} de ${allEvents.length} eventos` +
+      (eventFilter !== 'all' ? ` (filtro: ${eventFilter})` : '');
+
+    if (!filtered.length) {
+      tb.innerHTML = '<tr><td colspan="9" class="empty">Sin eventos' +
+        (eventFilter !== 'all' ? ` del tipo "${eventFilter}"` : '') + '</td></tr>';
+      return;
+    }
+
+    tb.innerHTML = filtered.slice(0, 150).map(e => {
+      const tipo = e.type ?? e.tipo ?? '?';
+      const detail = e.detail ?? {};
+      const rowClass = tipo === 'block' ? 'event-row ev-block' :
+                       tipo === 'report' ? 'event-row ev-report' :
+                       tipo === 'forward' ? 'event-row ev-forward' : 'event-row';
+      const tipoLabel = tipo === 'block'   ? '🔴 BLOCK' :
+                        tipo === 'report'  ? '🟡 REPORT' :
+                        tipo === 'forward' ? '🟢 FWD' : tipo.toUpperCase();
+      const ts = (e.timestamp ?? '').replace('T',' ').slice(0,19);
+      const sizeStr = detail.packet_size ? `${detail.packet_size} B` : '—';
+      return `<tr class="${rowClass}">
+        <td><strong>${tipoLabel}</strong></td>
+        <td>${e.node_name ?? e.node_id ?? '?'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.rule_name ?? '?'}">${e.rule_name ?? '?'}</td>
+        <td style="font-family:monospace">${detail.ip_src ?? '?'}</td>
+        <td style="font-family:monospace">${detail.ip_dst ?? '?'}</td>
+        <td>${detail.protocol ?? '?'}</td>
+        <td>${detail.port_dst ?? '?'}</td>
+        <td style="color:var(--muted)">${sizeStr}</td>
+        <td style="color:var(--muted);font-size:11px">${ts}</td>
+      </tr>`;
+    }).join('');
+
+    // Auto-scroll al top (evento más reciente)
+    const scroll = document.getElementById('events-scroll');
+    if (scroll) scroll.scrollTop = 0;
+  }
+
+  function setEventFilter(type, btn) {
+    eventFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderEvents();
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const tabs = ['rules','events','guide'];
+    const idx  = tabs.indexOf(name);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'events') loadEvents();
+  }
+
+  // ── Auto-refresh ──────────────────────────────────────────────────────────
+
+  function toggleAutoRefresh() {
+    const on = document.getElementById('auto-refresh').checked;
+    if (on) startAutoRefresh(); else stopAutoRefresh();
+  }
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    refreshTimer = setInterval(refresh, 5000);
+  }
+  function stopAutoRefresh() {
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+
+  function toast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + (type === 'ok' ? 'ok' : 'err');
+    setTimeout(() => { t.className = ''; }, 3000);
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  window.addEventListener('DOMContentLoaded', () => {
+    connect();
+    startAutoRefresh();
+  });
+</script>
+</body>
+</html>

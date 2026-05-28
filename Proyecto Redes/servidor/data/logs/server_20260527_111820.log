@@ -1,0 +1,23 @@
+2026-05-27 11:18:20,704 [INFO] Reglas cargadas desde disco: 3 regla(s).
+2026-05-27 11:18:20,705 [INFO] ============================================================
+2026-05-27 11:18:20,706 [INFO]   SERVIDOR CONTROLADOR SDN iniciando...
+2026-05-27 11:18:20,706 [INFO]   Escuchando en: http://0.0.0.0:5000
+2026-05-27 11:18:20,706 [INFO]   Reglas cargadas: 3
+2026-05-27 11:18:20,706 [INFO]   Timeout de nodos: 30s
+2026-05-27 11:18:20,706 [INFO]   Log: C:\Users\jerol\OneDrive\Escritorio\proyecto redes\Proyecto Redes\servidor\data\logs\server_20260527_111820.log
+2026-05-27 11:18:20,706 [INFO] ============================================================
+2026-05-27 11:18:22,088 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.23.36.87:5000
+2026-05-27 11:18:22,089 [INFO] [33mPress CTRL+C to quit[0m
+2026-05-27 11:19:19,052 [INFO] Nuevo nodo registrado: 'nodo-laptop-B' — 10.23.41.58:9000 (id=1b9bf874)
+2026-05-27 11:19:19,056 [INFO] 10.23.41.58 - - [27/May/2026 11:19:19] "[35m[1mPOST /register HTTP/1.1[0m" 201 -
+2026-05-27 11:19:19,102 [INFO] 10.23.41.58 - - [27/May/2026 11:19:19] "GET /rules HTTP/1.1" 200 -
+2026-05-27 11:19:24,244 [INFO] 10.23.41.58 - - [27/May/2026 11:19:24] "GET /rules HTTP/1.1" 200 -
+2026-05-27 11:19:29,282 [INFO] 10.23.41.58 - - [27/May/2026 11:19:29] "POST /heartbeat HTTP/1.1" 200 -
+2026-05-27 11:19:29,302 [INFO] 10.23.41.58 - - [27/May/2026 11:19:29] "GET /rules HTTP/1.1" 200 -
+2026-05-27 11:19:34,425 [INFO] 10.23.41.58 - - [27/May/2026 11:19:34] "GET /rules HTTP/1.1" 200 -
+2026-05-27 11:19:39,404 [INFO] 10.23.41.58 - - [27/May/2026 11:19:39] "POST /heartbeat HTTP/1.1" 200 -
+2026-05-27 11:19:39,460 [INFO] 10.23.41.58 - - [27/May/2026 11:19:39] "GET /rules HTTP/1.1" 200 -
+2026-05-27 11:19:44,524 [INFO] 10.23.41.58 - - [27/May/2026 11:19:44] "GET /rules HTTP/1.1" 200 -

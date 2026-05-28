@@ -1,0 +1,136 @@
+{
+  "permitir_udp": {
+    "description": "PRUEBA 1 — Regla que PERMITE tráfico UDP hacia puerto autorizado (9000)",
+    "steps": [
+      {
+        "label": "Prueba 1: Envío UDP al puerto autorizado 9000",
+        "ip": "10.23.41.58",
+        "port": 9000,
+        "protocol": "UDP",
+        "count": 8,
+        "interval": 0.4,
+        "message": "paquete_permitido_udp_9000"
+      }
+    ]
+  },
+
+  "bloquear_udp": {
+    "description": "PRUEBA 2 — Regla que BLOQUEA tráfico UDP hacia puerto restringido (9999)",
+    "steps": [
+      {
+        "label": "Prueba 2: Envío UDP al puerto bloqueado 9999",
+        "ip": "10.23.41.58",
+        "port": 9999,
+        "protocol": "UDP",
+        "count": 8,
+        "interval": 0.4,
+        "message": "paquete_bloqueado_udp_9999"
+      }
+    ]
+  },
+
+  "bloquear_ip": {
+    "description": "PRUEBA 3 — Regla que BLOQUEA por dirección IP origen",
+    "steps": [
+      {
+        "label": "Prueba 3: Tráfico que será bloqueado por IP origen del generador",
+        "ip": "10.23.41.58",
+        "port": 9000,
+        "protocol": "UDP",
+        "count": 8,
+        "interval": 0.4,
+        "message": "paquete_bloqueado_por_ip_origen"
+      }
+    ]
+  },
+
+  "reportar_ip": {
+    "description": "PRUEBA 4 — Regla que REPORTA/alerta al controlador por IP sospechosa",
+    "steps": [
+      {
+        "label": "Prueba 4: Tráfico que activará reporte al servidor",
+        "ip": "10.23.41.58",
+        "port": 9000,
+        "protocol": "UDP",
+        "count": 6,
+        "interval": 0.5,
+        "message": "paquete_sospechoso_para_reporte"
+      }
+    ]
+  },
+
+  "conflicto_prioridad": {
+    "description": "PRUEBA 5 — Conflicto entre dos reglas resuelto por PRIORIDAD",
+    "steps": [
+      {
+        "label": "Prueba 5a: Fase 1 — Gana regla DROP (prioridad Alta)",
+        "ip": "10.23.41.58",
+        "port": 9000,
+        "protocol": "UDP",
+        "count": 5,
+        "interval": 0.5,
+        "message": "conflicto_fase1_debe_bloquear",
+        "pause_after": 3
+      },
+      {
+        "label": "Prueba 5b: Fase 2 — Gana regla FORWARD (prioridad Alta, DROP bajada a Baja)",
+        "ip": "10.23.41.58",
+        "port": 9000,
+        "protocol": "UDP",
+        "count": 5,
+        "interval": 0.5,
+        "message": "conflicto_fase2_debe_permitir"
+      }
+    ]
+  },
+
+  "tcp_bloquear": {
+    "description": "Extra — Bloqueo de tráfico TCP (ej. SSH puerto 22)",
+    "steps": [
+      {
+        "label": "Extra TCP: Conexión TCP al puerto 22 (debe ser bloqueada)",
+        "ip": "10.23.41.58",
+        "port": 22,
+        "protocol": "TCP",
+        "count": 5,
+        "interval": 0.6,
+        "message": "intento_ssh_bloqueado"
+      }
+    ]
+  },
+
+  "rafaga_mixta": {
+    "description": "Extra — Ráfaga mixta UDP+TCP para estrés y demostración general",
+    "steps": [
+      {
+        "label": "Paso 1: UDP a puerto permitido",
+        "ip": "10.23.41.58",
+        "port": 9000,
+        "protocol": "UDP",
+        "count": 5,
+        "interval": 0.3,
+        "message": "rafaga_udp_permitido",
+        "pause_after": 1
+      },
+      {
+        "label": "Paso 2: UDP a puerto bloqueado",
+        "ip": "10.23.41.58",
+        "port": 9999,
+        "protocol": "UDP",
+        "count": 5,
+        "interval": 0.3,
+        "message": "rafaga_udp_bloqueado",
+        "pause_after": 1
+      },
+      {
+        "label": "Paso 3: TCP a puerto bloqueado",
+        "ip": "10.23.41.58",
+        "port": 22,
+        "protocol": "TCP",
+        "count": 3,
+        "interval": 0.5,
+        "message": "rafaga_tcp_bloqueado"
+      }
+    ]
+  }
+}

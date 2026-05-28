@@ -1,0 +1,2 @@
+# El generador solo usa la librería estándar de Python
+# No requiere instalación de paquetes externos

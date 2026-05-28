@@ -1,0 +1,10 @@
+{
+  "server_ip":          "10.23.36.87",
+  "server_port":        5000,
+  "node_name":          "nodo-laptop-B",
+  "listen_port":        9000,
+  "listen_all":         false,
+  "listen_ports":       [5001, 5002, 5003, 6000, 6001, 6002, 7000, 7700, 8000, 8080, 8081, 9000, 9999],
+  "poll_interval":      5,
+  "heartbeat_interval": 10
+}

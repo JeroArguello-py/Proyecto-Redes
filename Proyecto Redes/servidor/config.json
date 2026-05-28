@@ -1,0 +1,6 @@
+{
+  "host": "0.0.0.0",
+  "port": 5000,
+  "node_timeout_seconds": 30,
+  "max_events_stored": 500
+}
