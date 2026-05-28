@@ -168,39 +168,16 @@ Sin regla coincidente → se aplica `forward` por defecto.
 
 ---
 
-## Pruebas de evaluación
 
-El script `pruebas_evaluacion.py` contiene las 10 pruebas oficiales:
-
-```bash
-python pruebas_evaluacion.py            # menú interactivo
-python pruebas_evaluacion.py --prueba 3 # ejecuta solo la prueba 3
-python pruebas_evaluacion.py --todas    # ejecuta las 10 en orden
-```
-
-| # | Prueba | Pts |
-|---|--------|-----|
-| 1 | Registro de nodos activos | 2.5 |
-| 2 | Permiso UDP puerto 5001 | 4 |
-| 3 | Bloqueo UDP puerto 5002 | 4 |
-| 4 | Permiso TCP puerto 8080 | 4 |
-| 5 | Bloqueo TCP puerto 8081 | 4 |
-| 6 | Bloqueo por IP origen (puerto 5003) | 5 |
-| 7 | Reporte sin bloqueo UDP 7700 | 5 |
-| 8 | Conflicto resuelto por prioridad UDP 8000 | 6.5 |
-| 9 | Actualización dinámica sin reiniciar clientes | 7.5 |
-| 10 | Prueba integral multicliente | 7.5 |
-
----
 
 ## IPs de la red de prueba
 
-| Nodo | IP | Puerto |
-|------|----|--------|
-| Servidor / Controlador | `10.23.36.87` | `5000` |
-| nodo-laptop-B (Cliente A) | `10.23.62.167` | `9000` |
-| nodo-laptop-C (Cliente B) | `10.23.41.58` | `9000` |
-| nodo-laptop-D (Cliente C) | `10.23.55.191` | `9000` |
+| Nodo | IP | 
+|------|----|
+| Servidor / Controlador | `10.23.36.87` |
+| nodo-laptop-B (Cliente A) | `10.23.62.167` | 
+| nodo-laptop-C (Cliente B) | `10.23.41.58` | 
+| nodo-laptop-D (Cliente C) | `10.23.55.191` | 
 
 ---
 
